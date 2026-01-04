@@ -1,40 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, X, UserCheck } from 'lucide-react';
+import { Phone, CheckCircle, XCircle } from 'lucide-react';
+import { CRM_API } from '../lib/api';
 
-export default function IncomingCallPopup({ incomingNumber, onClose }) {
-  const [timer, setTimer] = useState(18);
+export default function IncomingCallPopup({ phone, onAccept, onReject }) {
+  const [contact, setContact] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimer((t) => (t > 0 ? t - 1 : 0));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (timer === 0) return null;
+    CRM_API.getContact(phone).then(data => {
+      setContact(data);
+      setLoading(false);
+    });
+  }, [phone]);
 
   return (
-    <div className="fixed top-5 right-5 z-[9999] w-80 animate-in fade-in slide-in-from-right-10 duration-500">
-      <div className="bg-slate-900 border-l-4 border-orange-500 shadow-2xl p-5 text-white rounded-lg">
-        <div className="flex justify-between items-center mb-4">
-          <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">
-            <Phone className="animate-pulse" size={14} /> Chamada a Entrar ({timer}s)
-          </span>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
-            <X size={18} />
-          </button>
+    <div className="fixed bottom-6 right-6 w-96 bg-[#0f172a] text-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 p-6 z-[999] animate-in slide-in-from-bottom-10">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2 bg-orange-500/20 px-3 py-1 rounded-full border border-orange-500/30">
+          <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Chamada CRM</span>
         </div>
-        
-        <div className="mb-4">
-          <p className="text-2xl font-mono font-bold tracking-tight text-white">{incomingNumber}</p>
-          <p className="text-xs text-slate-400 mt-1 italic">A pesquisar no Directus...</p>
-        </div>
-        
-        <button 
-          onClick={() => alert('A abrir ficha 360...')}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-md font-bold text-sm transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
-        >
-          <UserCheck size={18} /> Atender e Identificar
+        <span className="text-xs font-mono text-white/40">18s</span>
+      </div>
+
+      <h3 className="text-3xl font-black italic tracking-tighter mb-2">{phone}</h3>
+      
+      <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+        {loading ? (
+          <p className="text-xs italic text-white/40">Consultando Directus...</p>
+        ) : contact ? (
+          <div>
+            <p className="text-green-400 font-bold">{contact.nome}</p>
+            <p className="text-[10px] text-white/40 uppercase">Cliente Registado</p>
+          </div>
+        ) : (
+          <p className="text-orange-400 font-bold text-xs uppercase italic">Novo Lead Identificado</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={onReject} className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 transition-all font-bold text-sm">
+          <XCircle size={18} /> Rejeitar
+        </button>
+        <button onClick={() => onAccept(contact || { telefone: phone, nome: '' })} className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20 font-black text-sm transition-all">
+          <CheckCircle size={18} /> Atender
         </button>
       </div>
     </div>

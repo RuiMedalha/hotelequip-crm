@@ -3,19 +3,21 @@ import IncomingCallPopup from './components/IncomingCallPopup';
 import Dashboard360 from './components/Dashboard360';
 
 function App() {
-  const [customer, setCustomer] = useState(null);
-  const [call, setCall] = useState("912345678");
+  const [call, setCall] = useState("912345678"); // Simulação de chamada inicial
+  const [activeCustomer, setActiveCustomer] = useState(null);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <h1 className="text-2xl font-black mb-8 italic uppercase tracking-tighter">
-        HotelEquip <span className="text-orange-500">Lab</span>
-      </h1>
-      <Dashboard360 customer={customer} />
+    <div className="min-h-screen bg-slate-100">
+      <Dashboard360 
+        customer={activeCustomer} 
+        onRefresh={() => setActiveCustomer(null)}
+      />
+      
       {call && (
         <IncomingCallPopup 
           phone={call} 
-          onAtender={(data) => { setCustomer(data); setCall(null); }} 
+          onAccept={(data) => { setActiveCustomer(data); setCall(null); }} 
+          onReject={() => setCall(null)} 
         />
       )}
     </div>
