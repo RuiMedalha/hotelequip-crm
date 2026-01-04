@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  crm-frontend:
+    build: .
+    container_name: hotelequip-crm-app
+    restart: always
+    ports:
+      - "3000:80" # Liga a porta 80 do Nginx interno à porta 3000 do teu VPS
+    environment:
+      - VITE_DIRECTUS_URL=https://api.hotelequip.pt
+      - VITE_MEILISEARCH_URL=https://search.hotelequip.pt
+      - VITE_N8N_WEBHOOK=https://n8n.hotelequip.pt/webhook/crm-sync
