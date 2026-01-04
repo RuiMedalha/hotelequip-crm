@@ -1,51 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, CheckCircle, XCircle } from 'lucide-react';
-import { CRM_API } from '../lib/api';
+import { Phone, Clock } from 'lucide-react';
+import { CRM_DB } from '../services/api';
 
-export default function IncomingCallPopup({ phone, onAccept, onReject }) {
+export default function IncomingCallPopup({ phone, onAtender }) {
+  const [timer, setTimer] = useState(18);
   const [contact, setContact] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [resolved, setResolved] = useState(false);
 
   useEffect(() => {
-    CRM_API.getContact(phone).then(data => {
-      setContact(data);
-      setLoading(false);
-    });
-  }, [phone]);
+    CRM_DB.getContact(phone).then(setContact);
+    const interval = setInterval(() => {
+      setTimer(t => {
+        if (t <= 1 && !resolved) {
+          CRM_DB.logCall({ telefone: phone, estado: 'Perdida', contactoId: contact?.id });
+          clearInterval(interval);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [phone, contact, resolved]);
+
+  const handleAtender = () => {
+    setResolved(true);
+    CRM_DB.logCall({ telefone: phone, estado: 'Atendida', contactoId: contact?.id });
+    onAtender(contact || { Telefone: phone, Nome: 'Novo Contacto B2B' });
+  };
+
+  if (timer === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 bg-[#0f172a] text-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 p-6 z-[999] animate-in slide-in-from-bottom-10">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2 bg-orange-500/20 px-3 py-1 rounded-full border border-orange-500/30">
-          <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Chamada CRM</span>
-        </div>
-        <span className="text-xs font-mono text-white/40">18s</span>
+    <div className="fixed bottom-10 right-10 w-96 bg-slate-900 rounded-2xl shadow-2xl border border-orange-500 p-6 z-50">
+      <div className="flex justify-between items-center mb-4 text-orange-500">
+        <span className="text-[10px] font-black uppercase tracking-widest">Incoming B2B</span>
+        <div className="flex items-center gap-1 text-slate-400 font-mono text-sm"><Clock size={14} /> {timer}s</div>
       </div>
-
-      <h3 className="text-3xl font-black italic tracking-tighter mb-2">{phone}</h3>
-      
-      <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
-        {loading ? (
-          <p className="text-xs italic text-white/40">Consultando Directus...</p>
-        ) : contact ? (
-          <div>
-            <p className="text-green-400 font-bold">{contact.nome}</p>
-            <p className="text-[10px] text-white/40 uppercase">Cliente Registado</p>
-          </div>
-        ) : (
-          <p className="text-orange-400 font-bold text-xs uppercase italic">Novo Lead Identificado</p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <button onClick={onReject} className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 transition-all font-bold text-sm">
-          <XCircle size={18} /> Rejeitar
-        </button>
-        <button onClick={() => onAccept(contact || { telefone: phone, nome: '' })} className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20 font-black text-sm transition-all">
-          <CheckCircle size={18} /> Atender
-        </button>
-      </div>
+      <h2 className="text-3xl font-mono font-bold text-white mb-6">{phone}</h2>
+      <button onClick={handleAtender} className="w-full bg-orange-500 text-white py-4 rounded-xl font-black uppercase text-xs">Atender Cockpit</button>
     </div>
   );
 }

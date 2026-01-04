@@ -1,21 +1,55 @@
 import { createDirectus, rest, readItems } from '@directus/sdk';
-import { MeiliSearch } from 'meilisearch';
 
-// Directus Client
-export const directus = createDirectus(import.meta.env.VITE_DIRECTUS_URL).with(rest());
+const DIRECTUS_URL = 'https://api.hotelequip.pt';
+const TOKEN = 'wmvENNbSbzF0ZM-dCVpvU72nNg8reoQy';
 
-// Meilisearch Client
-const msClient = new MeiliSearch({
-  host: import.meta.env.VITE_MEILISEARCH_URL,
-  apiKey: import.meta.env.VITE_MEILISEARCH_KEY,
-});
+export const client = createDirectus(DIRECTUS_URL).with(rest());
 
-// Omni-Search: Meilisearch + Woo + Manual
-export const hybridSearch = async (query) => {
-  const msResults = await msClient.index('products').search(query);
-  // Simulação de chamada Woo (idealmente via proxy ou n8n para segurança de keys)
-  return {
-    meilisearch: msResults.hits,
-    manualEntry: { id: 'custom', nome: query, preco: 0 }
-  };
+const headers = {
+  'Authorization': `Bearer ${TOKEN}`,
+  'Content-Type': 'application/json'
+};
+
+export const CRM_DB = {
+  getContact: async (phone) => {
+    try {
+      const res = await client.request(readItems('contactos', {
+        filter: { Telefone: { _eq: phone } },
+        limit: 1
+      }));
+      return res[0];
+    } catch (err) {
+      console.error("Erro Directus Lookup:", err);
+      return null;
+    }
+  },
+  logCall: async (data) => {
+    try {
+      await fetch(`${DIRECTUS_URL}/items/Historico_Chamadas`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          Telefone: data.telefone,
+          Estado: data.estado,
+          Data: new Date().toISOString(),
+          Contacto: data.contactoId || null
+        })
+      });
+    } catch (err) {
+      console.error("Erro ao gravar histórico:", err);
+    }
+  },
+  updateNewsletter: async (id, status) => {
+    try {
+      const res = await fetch(`${DIRECTUS_URL}/items/contactos/${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ "Accept Newsletter": status })
+      });
+      return res.ok;
+    } catch (err) {
+      console.error("Erro newsletter:", err);
+      return false;
+    }
+  }
 };
